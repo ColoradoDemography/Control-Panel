@@ -1,100 +1,136 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>Control Panel</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
     <style>
-    
       html{
         padding: 20px;
       }
-    
       button{
         padding: 5px;
         margin: 5px;
+        width: 165px;
       }
-    
+      #statusbox{
+        border-width: 3px;
+        border-style: solid;
+        padding: 3px;
+      }
     </style>
-  
 </head>
-  
 <body>
   <br />
   <h1>Demography Control Panel</h1>
-  <button>Update Demography Website</button>
+  <br />
+  <button id='updatewebsite'>Update Demography Website</button>
   <br /><br />
   <hr />
   <br />
-  
-  <!-- dynamically update this div with repos that are in Colorado Demography -->
   <h2>Update Project</h2>
   <br />
+  <div id='statusbox'>Status:&nbsp;<span id='statustext'></span></div><br />
+  <!-- dynamically update this div with repos that are in Colorado Demography -->
   <div id="dynamic"></div>
   
+<script>
+  //pass github authentification as querystring:
+  //address would be like so:  demography.dola.colorado.gov/Control-Panel?authenticate=TOKENVALUE
+  var authenticate = getParameterByName('authenticate');
   
-    <script>
-      
+  //if 'update demography website' button is clicked, easy:
+  document.getElementById('updatewebsite').addEventListener('click', function(){
+      document.getElementById('statustext').innerHTML = 'Processing.... Please Wait.';
+      document.getElementById('statusbox').style.borderColor = 'orange';
+      jsRequest('https://demography.dola.colorado.gov/update/jekyll-build', function(h){
+        document.getElementById('statustext').innerHTML = h;
+        document.getElementById('statusbox').style.borderColor = 'green';
+        document.getElementById('updatewebsite').style.backgroundColor = '#00ff1c';
+    });
+  });
+  
+      //vanilla ajax json request abstracted into a function/callback
       function jsRequest(path, callback){
         var xhr = new XMLHttpRequest();
         xhr.open('GET', path);
         xhr.send(null);
-      
         xhr.onreadystatechange = function () {
           var DONE = 4; // readyState 4 means the request is done.
           var OK = 200; // status 200 is a successful return.
           if (xhr.readyState === DONE) {
             if (xhr.status === OK) {
-              callback(JSON.parse(xhr.responseText));
+              callback(xhr.responseText);
             } else {
-              console.log('Error: ' + xhr.status); // An error occurred during the request.
+              callback('Error: ' + xhr.status); // An error occurred during the request.
             }
           }
         };
       }
       
-      jsRequest('https://api.github.com/users/ColoradoDemography/repos?', hasIndex);
-
+      //request a list of repos with ColoradoDemography organization
+      jsRequest('https://api.github.com/users/ColoradoDemography/repos?access_token=' + authenticate, hasIndex);
             
       function hasIndex(data){
-        console.log(data);
-        
+        data = JSON.parse(data);
         data.forEach(function(d){
-          console.log('d: ' + d);
-          
-          jsRequest('https://api.github.com/repos/ColoradoDemography/' + d.name + '/git/trees/master', function(e){
-            
-            e.tree.forEach(function(f){
-              console.log('f: ' + f);
-              
-              if(f.path === 'index.html'){
-                
-                //lone exception to the 'display if has index.html' rule
-                if(d.name !=== 'demographic_dashboard'){
-                  
-                  var dynamic = document.getElementById('dynamic');  
-                  var el = document.createElement('button');
-                  el.innerHTML = d.name;
-                  dynamic.appendChild(el).insertAdjacentHTML('afterend', '</br>');
-                  
-                }
-                
-              }
-              
+          //request a list of files at the root of each repo
+          //lone exception to the 'display if has index.html' rule: the demographic_dashboard repo
+          if(d.name !== 'demographic_dashboard'){
+            jsRequest('https://api.github.com/repos/ColoradoDemography/' + d.name + '/git/trees/master?access_token=' + authenticate, function(a){
+              a = JSON.parse(a);
+              addButton(a, d);
             });
-                        
-          });
-          
+          }
         });
              
       }
-
       
-  </script>
-
-
+      function addButton(a, d){
+        //for each file tree
+        a.tree.forEach(function(f){
+          //look for if the repo has an 'index.html' file in the root.  this indicates it is a client-side project
+          if(f.path === 'index.html'){
+            //create a button 
+            var dynamic = document.getElementById('dynamic');  
+            var el = document.createElement('button');
+            el.innerHTML = d.name;
+            el.id = d.name;
+            dynamic.appendChild(el).insertAdjacentHTML('afterend', '&nbsp;');
+            el.addEventListener('click', function(){
+              document.getElementById('statusbox').style.borderColor = 'orange';
+              jsRequest('https://demography.dola.colorado.gov/update/load_repo?repo=' + d.name, function(e){
+                var test_loaded = e.slice(1,6);
+                if(test_loaded!=='fatal'){
+                  document.getElementById('statustext').innerHTML = e;
+                  document.getElementById('statusbox').style.borderColor = 'green';
+                  el.style.backgroundColor = '#00ff1c';
+                }else{
+                  //repo is already loaded, need to git pull instead
+                  jsRequest('https://demography.dola.colorado.gov/update/update_repo?repo=' + d.name, function(g){
+                    document.getElementById('statustext').innerHTML = g;
+                    document.getElementById('statusbox').style.borderColor = 'green';
+                    el.style.backgroundColor = '#00ff1c';
+                  });
+                }
+              });
+            });
+          }
+        });
+      };
+      
+  
+  //parse parameterstring
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}  
+</script>
+  
 </body>
-
 </html>
