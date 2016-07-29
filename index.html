@@ -80,20 +80,22 @@
       }
       
       //request a list of repos with ColoradoDemography organization
-      jsRequest('https://api.github.com/users/ColoradoDemography/repos?access_token=' + authenticate, hasIndex);
+      jsRequest('https://api.github.com/users/ColoradoDemography/repos?page=1&per_page=100&access_token=' + authenticate, hasIndex);
             
       function hasIndex(data){
-        console.log(data.length);
+        
         data = JSON.parse(data);
+        console.log(data.length);
         data.forEach(function(d){
           //request a list of files at the root of each repo
           //lone exception to the 'display if has index.html' rule: the demographic_dashboard repo
-          if(d.name !== 'demographic_dashboard'){
+          if(d.name !== 'demographic_dashboard' && d.name !== 'shiny-landing-page' && d.name !== 'netmigration_dashboard'){
             jsRequest('https://api.github.com/repos/ColoradoDemography/' + d.name + '/git/trees/master?access_token=' + authenticate, function(a){
               a = JSON.parse(a);
               addButton(a, d);
             });
           }
+          
         });
              
       }
