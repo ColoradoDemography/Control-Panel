@@ -83,6 +83,7 @@
       jsRequest('https://api.github.com/users/ColoradoDemography/repos?access_token=' + authenticate, hasIndex);
             
       function hasIndex(data){
+        console.log(data.length);
         data = JSON.parse(data);
         data.forEach(function(d){
           //request a list of files at the root of each repo
