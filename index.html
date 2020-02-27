@@ -54,7 +54,7 @@
   document.getElementById('updatewebsite').addEventListener('click', function(){
       document.getElementById('statustext').innerHTML = 'Processing.... Please Wait.';
       document.getElementById('statusbox').style.borderColor = 'orange';
-      jsRequest('https://demography.dola.colorado.gov/update/jekyll-build', function(h){
+      jsRequest('https://demography.dola.colorado.gov/update/jekyll-build', false, function(h){
         document.getElementById('statustext').innerHTML = h;
         document.getElementById('statusbox').style.borderColor = 'green';
         document.getElementById('updatewebsite').style.backgroundColor = '#00ff1c';
@@ -62,36 +62,58 @@
   });
   
       //vanilla ajax json request abstracted into a function/callback
-      function jsRequest(path, callback){
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', path);
-        xhr.send(null);
-        xhr.onreadystatechange = function () {
-          var DONE = 4; // readyState 4 means the request is done.
-          var OK = 200; // status 200 is a successful return.
-          if (xhr.readyState === DONE) {
-            if (xhr.status === OK) {
-              callback(xhr.responseText);
-            } else {
-              callback('Error: ' + xhr.status); // An error occurred during the request.
-            }
-          }
+      function jsRequest(path, useGithubAuthHeader, callback){
+        // var xhr = new XMLHttpRequest();
+        // xhr.open('GET', path);
+        // xhr.send(null);
+        // xhr.onreadystatechange = function () {
+        //   var DONE = 4; // readyState 4 means the request is done.
+        //   var OK = 200; // status 200 is a successful return.
+        //   if (xhr.readyState === DONE) {
+        //     if (xhr.status === OK) {
+        //       callback(xhr.responseText);
+        //     } else {
+        //       callback('Error: ' + xhr.status); // An error occurred during the request.
+        //     }
+        //   }
+        // };
+
+        console.log({authenticate});
+
+        const base64encodedData = btoa('royhobbstn' + ':' + authenticate);
+
+        const headers =  {
+          'Content-Type': 'application/json'
         };
+
+        if(useGithubAuthHeader) {
+          headers.Authorization = 'Basic ' + base64encodedData;
+        }
+
+        fetch(path, { headers })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data);
+            callback(data);
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+          });
+
       }
       
       //request a list of repos with ColoradoDemography organization
-      jsRequest('https://api.github.com/users/ColoradoDemography/repos?page=1&per_page=100&access_token=' + authenticate, hasIndex);
+      jsRequest('https://api.github.com/users/ColoradoDemography/repos?page=1&per_page=100', true, hasIndex);
             
       function hasIndex(data){
         
-        data = JSON.parse(data);
         console.log(data.length);
+
         data.forEach(function(d){
           //request a list of files at the root of each repo
           //lone exception to the 'display if has index.html' rule: the demographic_dashboard repo
           if(d.name !== 'demographic_dashboard' && d.name !== 'shiny-landing-page' && d.name !== 'netmigration_dashboard'){
-            jsRequest('https://api.github.com/repos/ColoradoDemography/' + d.name + '/git/trees/master?access_token=' + authenticate, function(a){
-              a = JSON.parse(a);
+            jsRequest('https://api.github.com/repos/ColoradoDemography/' + d.name + '/git/trees/master', true, function(a){
               addButton(a, d);
             });
           }
@@ -113,7 +135,7 @@
             dynamic.appendChild(el).insertAdjacentHTML('afterend', '&nbsp;');
             el.addEventListener('click', function(){
               document.getElementById('statusbox').style.borderColor = 'orange';
-              jsRequest('https://demography.dola.colorado.gov/update/load_repo?repo=' + d.name, function(e){
+              jsRequest('https://demography.dola.colorado.gov/update/load_repo?repo=' + d.name, false, function(e){
                 var test_loaded = e.slice(1,6);
                 if(test_loaded!=='fatal'){
                   document.getElementById('statustext').innerHTML = e;
@@ -121,7 +143,7 @@
                   el.style.backgroundColor = '#00ff1c';
                 }else{
                   //repo is already loaded, need to git pull instead
-                  jsRequest('https://demography.dola.colorado.gov/update/update_repo?repo=' + d.name, function(g){
+                  jsRequest('https://demography.dola.colorado.gov/update/update_repo?repo=' + d.name, false, function(g){
                     document.getElementById('statustext').innerHTML = g;
                     document.getElementById('statusbox').style.borderColor = 'green';
                     el.style.backgroundColor = '#00ff1c';
@@ -131,7 +153,7 @@
             });
           }
         });
-      };
+      }
       
   
   //parse parameterstring
