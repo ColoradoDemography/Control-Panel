@@ -129,7 +129,7 @@
             dynamic.appendChild(el).insertAdjacentHTML('afterend', '&nbsp;');
             el.addEventListener('click', function(){
               document.getElementById('statusbox').style.borderColor = 'orange';
-              jsRequest('https://demography.dola.colorado.gov/update/load_repo?ex=1&repo=' + d.name, false, true, function(e){
+              jsRequest('https://demography.dola.colorado.gov/update/load_repo?repo=' + d.name, false, true, function(e){
                 var test_loaded = e.slice(1,6);
                 if(test_loaded!=='fatal'){
                   document.getElementById('statustext').innerHTML = e;
@@ -137,7 +137,7 @@
                   el.style.backgroundColor = '#00ff1c';
                 }else{
                   //repo is already loaded, need to git pull instead
-                  jsRequest('https://demography.dola.colorado.gov/update/update_repo?ex=2&repo=' + d.name, false, true, function(g){
+                  jsRequest('https://demography.dola.colorado.gov/update/update_repo?repo=' + d.name, false, true, function(g){
                     document.getElementById('statustext').innerHTML = g;
                     document.getElementById('statusbox').style.borderColor = 'green';
                     el.style.backgroundColor = '#00ff1c';
