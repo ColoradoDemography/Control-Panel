@@ -78,7 +78,8 @@
         }
 
         if(useGithubAuthHeader) {
-          headers.Authorization = 'Basic ' + btoa('royhobbstn' + ':' + authenticate);
+          //headers.Authorization = 'Basic ' + btoa('royhobbstn' + ':' + authenticate);
+            headers.Authorization = 'Basic ' + btoa('tbleess' + ':' + authenticate);
         }
 
         fetch(path, { headers, credentials:'omit' })
